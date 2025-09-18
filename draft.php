@@ -1,4 +1,4 @@
 <?php
 include 'data.php';
-include 'template.php';
+include_once 'template.php';
 ?>
