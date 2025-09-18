@@ -27,7 +27,15 @@ function indexFilter($invoices) { // use or gates to filter all 3 invoice types
 works and easier than making a custom filter? capitalize first letter and replace '.php' with nothing*/
 $page = str_replace('.php', '', ucwords(filter_var(($_SERVER["PHP_SELF"]), FILTER_SANITIZE_EMAIL)));
 
-$pageFunc = $page.'filter'; // find function starting in page name, set to $pageFunc
+ // find function starting in page name, set to $pageFunc
+
+if ($page == null) {
+    $pageFunc = 'indexFilter';
+}
+else {
+    $pageFunc = $page.'filter';
+}
+
 
 $orders = array_column($invoices, 'number'); // save number column from invoices
 
@@ -81,7 +89,7 @@ array_multisort($orders, SORT_ASC, SORT_STRING, $invoices);
         <div class="row justify-content-md-center">
             <div id="tableContainer" class="col col-10 table-responsive-xs">
                 <h1 class="m-3 font-monospace">Invoice List (<?php
-                    if ($page == 'Index') {
+                    if ($page == 'Index' || $page == NULL) {
                         echo "All";
                     } else {
                         echo str_replace('.php', '', $page);
