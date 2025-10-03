@@ -1,6 +1,8 @@
 <?php
 include 'data.php';
 
+/* invoice filters */
+
 function pendingFilter($invoices)
 {
     if ($invoices['status'] == 'pending') { // callback func for array_filter
@@ -29,6 +31,19 @@ function allFilter($invoices)
     }
 }
 
+/* update invoice */
+
+function deleteInvoiceFromValue($invoices, $key, $val)
+{
+    foreach ($invoices as $subKey => $subArray) {
+        if ($subArray[$key] == $val) {
+            unset($invoices[$subKey]);
+        }
+    }
+    return $invoices;
+} // https://stackoverflow.com/a/4466437
+
+
 $orders = array_column($invoices, 'number'); // save number column from invoices
 /* sort all invoices data alphabetically by order id (check DB to make
 sure this doesn't take up a bunch of resources */
@@ -46,6 +61,9 @@ if (!isset($_SESSION['sessionInvoice'])) {
 } // if $_SESSION['sessionInvoice'] is already populated, do not overwrite / erase user entries
 
 if (isset($_POST['number'], $_POST['amount'], $_POST['status'], $_POST['client'], $_POST['email'])) {
+
+    $_SESSION['sessionInvoice'] = deleteInvoiceFromValue($_SESSION['sessionInvoice'], 'number', $_POST['number']);
+
     $newInvoice = [
         'number' => $_POST['number'],
         'amount' => $_POST['amount'],
@@ -55,12 +73,11 @@ if (isset($_POST['number'], $_POST['amount'], $_POST['status'], $_POST['client']
     ];
 
     $_SESSION['sessionInvoice'][] = $newInvoice;
-
-
-    /* if there are post values corresponding to a new invoice, add to $newInvoice
-array, then append to $_SESSION['sessionInvoice'] to be displayed all together */
 }
 
+
+/* if there are post values corresponding to a new invoice, add to $newInvoice
+array, then append to $_SESSION['sessionInvoice'] to be displayed all together */
 
 
 ?>
@@ -141,6 +158,7 @@ array, then append to $_SESSION['sessionInvoice'] to be displayed all together *
                             <th scope="col" id="clientEmail">
                                 <a>Client Email</a>
                             </th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -150,7 +168,15 @@ array, then append to $_SESSION['sessionInvoice'] to be displayed all together *
                                 <td>$<?php echo ucwords($entry['amount']); ?>.<span class="centsDisplay text-white-50">00</span></td>
                                 <td><?php echo ucwords($entry['status']); ?></td>
                                 <td><?php echo ucwords($entry['client']); ?></td>
-                                <td id="clientEmail"> <a class="link-secondary" href="mailto:<?php echo ($entry['email']); ?>"><?php echo ($entry['email']); ?></a></td>
+                                <td id="clientEmail">
+                                    <a class="link-secondary" href="mailto:<?php echo ($entry['email']); ?>"><?php echo ($entry['email']); ?></a>
+                                </td>
+                                <td>
+                                    <form action="update.php" method="get" class="btn-group-sm">
+                                        <button name="invoiceToUpdate" class="btn btn-outline-secondary" value="<?php echo ucwords($entry['number']); ?>">Edit</button>
+                                        <button name="invoiceToDelete" class="btn btn-outline-secondary" value="<?php echo ucwords($entry['number']); ?>">Delete</button>
+                                    </form> <!-- serialize() instead ? -->
+                                </td>
                             <?php endforeach; ?>
                             </tr>
                     </tbody>
