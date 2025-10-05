@@ -1,6 +1,27 @@
-<?php 
+<?php
+/* add.php */
+
 session_start();
 
+function findByID($invoices) {
+    global $currUpdateInvoiceID;
+    return ($invoices['number'] == $currUpdateInvoiceID);
+}
+
+$currUpdateInvoiceStatus = NULL;
+
+if (isset($_GET['invoiceAddFormRetry'])) {
+    $currUpdateInvoiceID = $_GET['invoiceAddFormRetry'];
+}
+
+/* populate currUpdateInvoice* when $_SESSION retry variables are set */
+if (isset($_SESSION['retryInvoiceNumber'])) {
+    $currUpdateInvoiceID = $_SESSION['retryInvoiceNumber'];
+    $currUpdateInvoiceAmount = $_SESSION['retryInvoiceAmount'];
+    $currUpdateInvoiceStatus = $_SESSION['retryInvoiceStatus'];
+    $currUpdateInvoiceClient = $_SESSION['retryInvoiceClient'];
+    $currUpdateInvoiceEmail = $_SESSION['retryInvoiceEmail'];
+}
 ?>
 
 <!DOCTYPE html>
@@ -40,39 +61,43 @@ session_start();
         <div class="row justify-content-md-center font-monospace">
             <div class="p-1 m-5 col-6">
                 <h1>
-                    Add New Invoice:
+                    Add Invoice:
                 </h1>
                 <form action="index.php" method="POST">
                     <div class="mb-3">
+                        <label for="errors" class="form-label"><?= $_SESSION['errorString'] ?? '' ?></label>
+                    </div>
+                    <div class="mb-3">
                         <label for="orderIdTxt" class="form-label">Order ID</label>
-                        <input type="text" class="form-control" name="number" aria-describedby="clientName" required>
+                        <input type="text" class="form-control" name="number" aria-describedby="clientName" value="<?= $currUpdateInvoiceID ?? '' ?>" required>
                     </div>
                     <div class="mb-3">
                         <label for="amountDueTxt" class="form-label">Amount Due</label>
-                        <input type="text" class="form-control" name="amount" required>
+                        <input type="text" class="form-control" name="amount" value="<?= $currUpdateInvoiceAmount ?? ''  ?>" required>
                     </div>
-                    <div class="mb-3" >
+                    <div class="mb-3">
                         <label for="amountDueTxt" class="form-label">Invoice Status</label><br>
                         <div class="form-check form-check-inline">
-                            <input class="form-check-input" type="radio" name="status" id="inlineRadio1" value="pending" required>
+                            <input class="form-check-input" type="radio" name="status" id="inlineRadio1" value="pending" <?php if ($currUpdateInvoiceStatus === 'pending') echo 'checked'; ?> required />
                             <label class="form-check-label" for="inlineRadio1">Pending</label>
                         </div>
                         <div class="form-check form-check-inline">
-                            <input class="form-check-input" type="radio" name="status" id="inlineRadio2" value="paid">
+                            <input class="form-check-input" type="radio" name="status" id="inlineRadio2" value="paid" <?php if ($currUpdateInvoiceStatus === 'paid') echo 'checked'; ?> />
                             <label class="form-check-label" for="inlineRadio2">Paid</label>
                         </div>
                         <div class="form-check form-check-inline">
-                            <input class="form-check-input" type="radio" name="status" id="inlineRadio2" value="draft">
+                            <input class="form-check-input" type="radio" name="status" id="inlineRadio2" value="draft" <?php if ($currUpdateInvoiceStatus === 'draft') echo 'checked'; ?> />
                             <label class="form-check-label" for="inlineRadio2">Draft</label>
                         </div>
                     </div>
                     <div class="mb-3">
                         <label for="clientNameTxt" class="form-label">Client Name</label>
-                        <input type="text" class="form-control" name="client" required>
+                        <input type="text" class="form-control" name="client" value="<?= $currUpdateInvoiceClient ?? '' ?>" required>
                     </div>
                     <div class="mb-3">
                         <label for="clientEmailTxt" class="form-label">Client Email</label>
-                        <input type="email" class="form-control" name="email" required>
+                        <input type="text" class="form-control" name="email" value="<?= $currUpdateInvoiceEmail ?? '' ?>" required>
+                        <input type="hidden" name="pageOrigin" value="add">
                     </div>
                     <button type="submit" class="btn btn-primary">Submit</button>
                 </form>

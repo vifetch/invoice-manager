@@ -1,40 +1,36 @@
 <?php
+/* index.php */
+
 include 'data.php';
+session_start();
 
-/* invoice filters */
+/* functions */
 
-function pendingFilter($invoices)
-{
+function pendingFilter($invoices) {
     if ($invoices['status'] == 'pending') { // callback func for array_filter
         return true;                        // with 'pending' status
     }
 }
 
-function paidFilter($invoices)
-{
+function paidFilter($invoices) {
     if ($invoices['status'] == 'paid') {
         return true;
     }
 }
 
-function draftFilter($invoices)
-{
+function draftFilter($invoices) {
     if ($invoices['status'] == 'draft') {
         return true;
     }
 }
 
-function allFilter($invoices)
-{ // use or gates to filter all 3 invoice types
+function allFilter($invoices) { // use or gates to filter all 3 invoice types
     if ($invoices['status'] == 'pending' || 'paid' || 'draft') {
         return true;
     }
 }
 
-/* update invoice */
-
-function deleteInvoiceFromValue($invoices, $key, $val)
-{
+function deleteInvoiceFromValue($invoices, $key, $val) {
     foreach ($invoices as $subKey => $subArray) {
         if ($subArray[$key] == $val) {
             unset($invoices[$subKey]);
@@ -43,43 +39,89 @@ function deleteInvoiceFromValue($invoices, $key, $val)
     return $invoices;
 } // https://stackoverflow.com/a/4466437
 
+function validateStatus(string $val) {
+    if ($val == 'pending' || $val == 'paid' || $val == 'draft') {
+        return $val;
+    }
+    return null;
+}
 
-$orders = array_column($invoices, 'number'); // save number column from invoices
-/* sort all invoices data alphabetically by order id (check DB to make
-sure this doesn't take up a bunch of resources */
-array_multisort($orders, SORT_ASC, SORT_STRING, $invoices);
+/* first run code (populate pageOrigin and sessionInvoice if empty) */
 
-$status = $_GET['invoiceStatus'] ?? 'all';
-$pageFunc = $status . 'filter';
-/* check post value on invoiceStatus to determine which button was pressed /
-which filter to use */
-
-session_start();
-
-if (!isset($_SESSION['sessionInvoice'])) {
+if (empty($_POST['pageOrigin'])) {
+    $_POST['pageOrigin'] = 'home';
+}
+if (empty($_SESSION['sessionInvoice'])) {
     $_SESSION['sessionInvoice'] = $invoices;
 } // if $_SESSION['sessionInvoice'] is already populated, do not overwrite / erase user entries
 
-if (isset($_POST['number'], $_POST['amount'], $_POST['status'], $_POST['client'], $_POST['email'])) {
+/* empty session variables responsible for keeping track of invoice data entered that is not yet in the main array */
+$_SESSION['retryInvoiceNumber'] = "";
+$_SESSION['retryInvoiceAmount'] = "";
+$_SESSION['retryInvoiceStatus'] = "";
+$_SESSION['retryInvoiceClient'] = "";
+$_SESSION['retryInvoiceEmail'] = "";
+$_SESSION['errorString'] = "";
 
-    $_SESSION['sessionInvoice'] = deleteInvoiceFromValue($_SESSION['sessionInvoice'], 'number', $_POST['number']);
+/* sort all invoices data alphabetically by order id */
+$orders = array_column($invoices, 'number');
+array_multisort($orders, SORT_ASC, SORT_STRING, $invoices);
+/* check post value on invoiceStatus to determine which filter to use */
+$status = $_GET['invoiceStatus'] ?? 'all';
+$pageFunc = $status . 'filter';
 
-    $newInvoice = [
-        'number' => $_POST['number'],
-        'amount' => $_POST['amount'],
-        'status' => $_POST['status'],
-        'client' => $_POST['client'],
-        'email' => $_POST['email'],
-    ];
+/* only execute the large if/else checks if there is post data with a pageOrigin of add or update */
+if ($_POST['pageOrigin'] == 'add' || $_POST['pageOrigin'] == 'update') {
+    /* sanitize user input using server-side, null if not valid */
+    $_POST['number'] = filter_var($_POST['number'], FILTER_VALIDATE_REGEXP, ['options' => ['regexp' => '/^[a-zA-Z]+$/']]);
+    $_POST['amount'] = filter_var($_POST['amount'], FILTER_SANITIZE_NUMBER_FLOAT);
+    $_POST['status'] = filter_var($_POST['status'], FILTER_CALLBACK, ['options' => 'validateStatus']);
+    $_POST['client'] = filter_var($_POST['client'], FILTER_VALIDATE_REGEXP, ['options' => ['regexp' => '/^[a-zA-Z\s]{1,255}$/']]);
+    $_POST['email'] = filter_var($_POST['email'], FILTER_VALIDATE_EMAIL);
 
-    $_SESSION['sessionInvoice'][] = $newInvoice;
+    /* check which post data for updating/adding invoices is valid, add error msg to $errorString */
+    if (empty($_POST['number'])) {
+        $errorString = 'ERROR: Invoice ID invalid';
+    } elseif (empty($_POST['amount'])) {
+        $errorString = 'ERROR: Invoice Amount invalid';
+    } elseif (empty($_POST['status'])) {
+        $errorString = 'ERROR: Invoice status invalid';
+    } elseif (empty($_POST['client'])) {
+        $errorString = 'ERROR: Invoice client name invalid';
+    } elseif (empty($_POST['email'])) {
+        $errorString = 'ERROR: Invoice email invalid';
+    }
+    /* if there were errors, save relevant post data to session storage as I found this was
+    the most elegant way to return the data back to the respective form without using ajax? */
+    if (!empty($errorString)) {
+        $_SESSION['errorString'] = $errorString;
+        $_SESSION['retryInvoiceNumber'] = $_POST['number'];
+        $_SESSION['retryInvoiceAmount'] = $_POST['amount'];
+        $_SESSION['retryInvoiceStatus'] = $_POST['status'];
+        $_SESSION['retryInvoiceClient'] = $_POST['client'];
+        $_SESSION['retryInvoiceEmail'] = $_POST['email'];
+
+        if ($_POST['pageOrigin'] == 'update') {
+            header('Location: /update.php', true, 302);
+            exit;
+        } elseif ($_POST['pageOrigin'] == 'add') {
+            header('Location: /add.php', true, 302);
+            exit;
+        }
+    }
+    /* if there were no errors, add post data to new array, delete old invoice and combine to multidimensional array */ elseif (isset($_POST['number'], $_POST['amount'], $_POST['status'], $_POST['client'], $_POST['email'])) {
+        $newInvoice = [
+            'number' => $_POST['number'],
+            'amount' => $_POST['amount'],
+            'status' => $_POST['status'],
+            'client' => $_POST['client'],
+            'email' => $_POST['email'],
+        ];
+
+        $_SESSION['sessionInvoice'] = deleteInvoiceFromValue($_SESSION['sessionInvoice'], 'number', $_POST['number']);
+        $_SESSION['sessionInvoice'][] = $newInvoice;
+    }
 }
-
-
-/* if there are post values corresponding to a new invoice, add to $newInvoice
-array, then append to $_SESSION['sessionInvoice'] to be displayed all together */
-
-
 ?>
 
 <!DOCTYPE html>
