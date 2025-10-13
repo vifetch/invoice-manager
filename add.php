@@ -2,6 +2,7 @@
 /* add.php */
 
 session_start();
+include 'db/fetchDB.php';
 
 function findByID($invoices) {
     global $currUpdateInvoiceID;
@@ -109,7 +110,7 @@ if (isset($_SESSION['retryInvoiceNumber'])) {
     <div class="container">
         <div class="row justify-content-md-center">
             <div class="alert alert-success p-1 m-2 col-10">
-                <h6 class="text-center font-monospace">Invoice Manager - Part 2, made by Olivia ***REMOVED***</h6>
+                <h6 class="text-center font-monospace">Invoice Manager - Part 4, made by Olivia ***REMOVED***</h6>
             </div>
         </div>
     </div>

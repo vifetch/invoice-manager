@@ -2,6 +2,8 @@
 /* update.php */
 
 session_start();
+include 'db/fetchDB.php';
+include 'db/updateDB.php';
 
 /* functions */
 
@@ -18,12 +20,13 @@ function findByID($invoices) {
     return ($invoices['number'] == $currUpdateInvoiceID);
 }
 
+
 $currUpdateInvoiceStatus = NULL;
 
-/* if invoiceToUpdate is passed, pull that invoice's data from $_SESSION['sessionInvoice'] into local variables */
+/* if invoiceToUpdate is passed, pull that invoice's data from db into local variables */
 if (isset($_GET['invoiceToUpdate'])) {
     $currUpdateInvoiceID = $_GET['invoiceToUpdate'];
-    foreach (array_filter($_SESSION['sessionInvoice'], 'findByID') as $entry) {
+    foreach (array_filter($invoices, 'findByID') as $entry) {
         $currUpdateInvoiceAmount = $entry['amount'];
         $currUpdateInvoiceStatus = $entry['status'];
         $currUpdateInvoiceClient = $entry['client'];
@@ -32,7 +35,8 @@ if (isset($_GET['invoiceToUpdate'])) {
 }
 /* if invoiceToDelete is set, pass to deleteInvoiceFromValue func with invoice number and redirect to index */
 elseif (isset($_GET['invoiceToDelete'])) {
-    $_SESSION['sessionInvoice'] = deleteInvoiceFromValue($_SESSION['sessionInvoice'], 'number', $_GET['invoiceToDelete']);
+    // $invoices = deleteInvoiceFromValue($invoices, 'number', $_GET['invoiceToDelete']);
+    deleteInvoice($db, $_GET['invoiceToDelete']);
     header('Location: /index.php', true, 302);
     exit;
 }
@@ -133,7 +137,7 @@ elseif (isset($_SESSION['retryInvoiceNumber'])) {
     <div class="container">
         <div class="row justify-content-md-center">
             <div class="alert alert-success p-1 m-2 col-10">
-                <h6 class="text-center font-monospace">Invoice Manager - Part 2, made by Olivia ***REMOVED***</h6>
+                <h6 class="text-center font-monospace">Invoice Manager - Part 4, made by Olivia ***REMOVED***</h6>
             </div>
         </div>
     </div>

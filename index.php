@@ -1,9 +1,9 @@
 <?php
 /* index.php */
 
-include 'data.php';
+include 'db/fetchDB.php';
+include 'db/updateDB.php';
 session_start();
-
 /* functions */
 
 function pendingFilter($invoices) {
@@ -29,16 +29,6 @@ function allFilter($invoices) { // use or gates to filter all 3 invoice types
         return true;
     }
 }
-
-function deleteInvoiceFromValue($invoices, $key, $val) {
-    foreach ($invoices as $subKey => $subArray) {
-        if ($subArray[$key] == $val) {
-            unset($invoices[$subKey]);
-        }
-    }
-    return $invoices;
-} // https://stackoverflow.com/a/4466437
-
 function validateStatus(string $val) {
     if ($val == 'pending' || $val == 'paid' || $val == 'draft') {
         return $val;
@@ -51,18 +41,13 @@ function validateStatus(string $val) {
 if (empty($_POST['pageOrigin'])) {
     $_POST['pageOrigin'] = 'home';
 }
-if (empty($_SESSION['sessionInvoice'])) {
-    $_SESSION['sessionInvoice'] = $invoices;
-} // if $_SESSION['sessionInvoice'] is already populated, do not overwrite / erase user entries
-
 /* empty session variables responsible for keeping track of invoice data entered that is not yet in the main array */
 $_SESSION['retryInvoiceNumber'] = "";
-$_SESSION['retryInvoiceAmount'] = "";
 $_SESSION['retryInvoiceStatus'] = "";
+$_SESSION['retryInvoiceAmount'] = "";
 $_SESSION['retryInvoiceClient'] = "";
 $_SESSION['retryInvoiceEmail'] = "";
 $_SESSION['errorString'] = "";
-
 /* sort all invoices data alphabetically by order id */
 $orders = array_column($invoices, 'number');
 array_multisort($orders, SORT_ASC, SORT_STRING, $invoices);
@@ -109,7 +94,8 @@ if ($_POST['pageOrigin'] == 'add' || $_POST['pageOrigin'] == 'update') {
             exit;
         }
     }
-    /* if there were no errors, add post data to new array, delete old invoice and combine to multidimensional array */ elseif (isset($_POST['number'], $_POST['amount'], $_POST['status'], $_POST['client'], $_POST['email'])) {
+    /* if there were no errors, add post data to new array, delete old invoice and combine to multidimensional array */ 
+    elseif (isset($_POST['number'], $_POST['amount'], $_POST['status'], $_POST['client'], $_POST['email'])) {
         $newInvoice = [
             'number' => $_POST['number'],
             'amount' => $_POST['amount'],
@@ -118,8 +104,14 @@ if ($_POST['pageOrigin'] == 'add' || $_POST['pageOrigin'] == 'update') {
             'email' => $_POST['email'],
         ];
 
-        $_SESSION['sessionInvoice'] = deleteInvoiceFromValue($_SESSION['sessionInvoice'], 'number', $_POST['number']);
-        $_SESSION['sessionInvoice'][] = $newInvoice;
+        // $invoices = deleteInvoiceFromValue($invoices, 'number', $_POST['number']);
+        // $invoices[] = $newInvoice;
+        deleteInvoice($db, $_POST['number']);
+        if (addInvoice($db, $newInvoice, $statusToNum)) {
+            echo "Invoice added successfully!";
+        } else {
+            echo "Invoice creation failed";
+        }
     }
 }
 ?>
@@ -133,7 +125,9 @@ if ($_POST['pageOrigin'] == 'add' || $_POST['pageOrigin'] == 'update') {
     <title>Invoice Manager</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
-    <link rel="stylesheet" href="style.css">
+    <style>
+        <?php include 'css/style.css'; ?>
+    </style>
 </head>
 
 <body>
@@ -204,7 +198,7 @@ if ($_POST['pageOrigin'] == 'add' || $_POST['pageOrigin'] == 'update') {
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach (array_filter($_SESSION['sessionInvoice'], $pageFunc) as $entry) : ?>
+                        <?php foreach (array_filter($invoices, $pageFunc) as $entry) : ?>
                             <tr scope="row">
                                 <td><?php echo ucwords($entry['number']); ?></td>
                                 <td>$<?php echo ucwords($entry['amount']); ?>.<span class="centsDisplay text-white-50">00</span></td>
@@ -216,7 +210,7 @@ if ($_POST['pageOrigin'] == 'add' || $_POST['pageOrigin'] == 'update') {
                                 <td>
                                     <form action="update.php" method="get" class="btn-group-sm">
                                         <button name="invoiceToUpdate" class="btn btn-outline-secondary" value="<?php echo ucwords($entry['number']); ?>">Edit</button>
-                                        <button name="invoiceToDelete" class="btn btn-outline-secondary" value="<?php echo ucwords($entry['number']); ?>">Delete</button>
+                                        <button name="invoiceToDelete" class="btn btn-outline-danger" value="<?php echo ucwords($entry['number']); ?>">Delete</button>
                                     </form> <!-- serialize() instead ? -->
                                 </td>
                             <?php endforeach; ?>
@@ -226,7 +220,7 @@ if ($_POST['pageOrigin'] == 'add' || $_POST['pageOrigin'] == 'update') {
                 </table>
             </div>
             <div class="alert alert-success p-1 m-2 col-10">
-                <h6 class="text-center font-monospace">Invoice Manager - Part 2, made by Olivia ***REMOVED***</h6>
+                <h6 class="text-center font-monospace">Invoice Manager - Part 4, made by Olivia ***REMOVED***</h6>
             </div>
         </div>
     </div>
