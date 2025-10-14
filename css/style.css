@@ -1,28 +1,42 @@
 /* General styling */
 
-
 h1 {
-    text-align: center;
+  text-align: center;
 }
 
 .centsDisplay {
-    font-size: 0.7rem;
+  font-size: 0.7rem;
 }
-
-/* .alert-success {
-    vertical-align: middle !important;
-    line-height: normal !important;
-} could not get the footer text to be exactly vertically centered unfortunately*/
 
 /* Additional responsiveness */
 
-
 /* Hide client email and then re-center table >= 650px) */
-@media only screen and (max-width: 650px) {
+@media only screen and (max-width: 768px) {
   #clientEmail {
     display: none !important;
   }
-  .col-10 {
+
+  .col-12 {
     width: 100% !important;
+  }
+}
+
+/* change edit/delete/view pdf buttons to have them take less space on smaller viewports */
+@media only screen and (max-width: 1201px) {
+  #delInvoice {
+    font-size: 0;
+    padding: 10px;
+    background-color: #dc3545;
+  }
+
+  #updInvoice {
+    font-size: 0;
+    padding: 10px;
+    background-color: #0d6efd;
+  }
+
+  #viewPdf {
+    font-size: 0;
+    padding: 10px;
   }
 }

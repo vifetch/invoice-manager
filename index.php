@@ -11,19 +11,16 @@ function pendingFilter($invoices) {
         return true;                        // with 'pending' status
     }
 }
-
 function paidFilter($invoices) {
     if ($invoices['status'] == 'paid') {
         return true;
     }
 }
-
 function draftFilter($invoices) {
     if ($invoices['status'] == 'draft') {
         return true;
     }
 }
-
 function allFilter($invoices) { // use or gates to filter all 3 invoice types
     if ($invoices['status'] == 'pending' || 'paid' || 'draft') {
         return true;
@@ -48,6 +45,7 @@ $_SESSION['retryInvoiceAmount'] = "";
 $_SESSION['retryInvoiceClient'] = "";
 $_SESSION['retryInvoiceEmail'] = "";
 $_SESSION['errorString'] = "";
+
 /* sort all invoices data alphabetically by order id */
 $orders = array_column($invoices, 'number');
 array_multisort($orders, SORT_ASC, SORT_STRING, $invoices);
@@ -94,8 +92,7 @@ if ($_POST['pageOrigin'] == 'add' || $_POST['pageOrigin'] == 'update') {
             exit;
         }
     }
-    /* if there were no errors, add post data to new array, delete old invoice and combine to multidimensional array */ 
-    elseif (isset($_POST['number'], $_POST['amount'], $_POST['status'], $_POST['client'], $_POST['email'])) {
+    /* if there were no errors, add post data to new array, delete old invoice and combine to multidimensional array */ elseif (isset($_POST['number'], $_POST['amount'], $_POST['status'], $_POST['client'], $_POST['email'])) {
         $newInvoice = [
             'number' => $_POST['number'],
             'amount' => $_POST['amount'],
@@ -104,13 +101,47 @@ if ($_POST['pageOrigin'] == 'add' || $_POST['pageOrigin'] == 'update') {
             'email' => $_POST['email'],
         ];
 
-        // $invoices = deleteInvoiceFromValue($invoices, 'number', $_POST['number']);
-        // $invoices[] = $newInvoice;
+        /* save uploaded user invoice pdf to respective file location */
+        if (isset($_FILES['pdf']['name'])) {
+            if ($_FILES['pdf']['error'] === UPLOAD_ERR_OK) {
+                $file = $_FILES['pdf']['tmp_name'];
+
+                /* grab user uploaded file type */
+                $uploadFileType = strtolower(pathinfo($_FILES['pdf']['name'], PATHINFO_EXTENSION));
+
+                // if __DIR__/documents/ does not exist, create with chmod 744
+                if (!file_exists($documents = __DIR__ . '/documents/')) {
+                    mkdir(
+                        __DIR__ . '/documents/',
+                        0744
+                    );
+                }
+                $dest = __DIR__ . '/documents/' . $_POST['number'] . '.pdf';
+
+                /* if upload file type is not pdf, echo error, else move file to documents */
+                if ($uploadFileType != "pdf") {
+                    echo ucwords("Error: Only PDF files are allowed. ");
+                } else {
+                    move_uploaded_file($file, $dest);
+                }
+            }
+        }
+
         deleteInvoice($db, $_POST['number']);
-        if (addInvoice($db, $newInvoice, $statusToNum)) {
-            echo "Invoice added successfully!";
+        $invoiceAddResult = addInvoice($db, $newInvoice, $statusToNum);
+
+        if ($invoiceAddResult && $_POST['pageOrigin'] == 'add') {
+            $_SESSION['toastMessage'] = "Invoice added successfully!";
+            header("Location: index.php");
+            exit;
+        } elseif ($invoiceAddResult && $_POST['pageOrigin'] == 'update') {
+            $_SESSION['toastMessage'] = "Invoice updated successfully!";
+            header("Location: index.php");
+            exit;
         } else {
-            echo "Invoice creation failed";
+            $_SESSION['toastMessage'] = "Invoice creation failed!";
+            header("Location: index.php");
+            exit;
         }
     }
 }
@@ -118,18 +149,14 @@ if ($_POST['pageOrigin'] == 'add' || $_POST['pageOrigin'] == 'update') {
 
 <!DOCTYPE html>
 <html lang="en" data-bs-theme="dark"> <!-- fancy in dark mode -->
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Invoice Manager</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
-    <style>
-        <?php include 'css/style.css'; ?>
-    </style>
+    <link rel="stylesheet" href="css/style.css">
 </head>
-
 <body>
     <nav class="navbar navbar-expand-lg bg-body-tertiary">
         <div class="container-fluid">
@@ -150,10 +177,27 @@ if ($_POST['pageOrigin'] == 'add' || $_POST['pageOrigin'] == 'update') {
             </div>
         </div>
     </nav>
-
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <?php if (isset($_SESSION['toastMessage'])): ?>
+            <div class="toast align-items-center text-bg-<?php echo $_SESSION['toastType'] ?? 'primary'; ?> border-0" role="alert" aria-live="assertive" aria-atomic="true" id="postToast">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        <?php echo htmlspecialchars($_SESSION['toastMessage']); ?>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            </div>
+            <?php
+            unset($_SESSION['toastMessage']);
+            unset($_SESSION['toastType']);
+            ?>
+        <?php endif; ?>
+    </div>
     <div class="container">
         <div class="row justify-content-md-center">
-            <div class="col p-1 m-5 col-6 text-center font-monospace">
+            <div class="col p-1 m-5 col-10 text-center font-monospace">
+                <div class="alert alert-success" role="alert" hidden>
+                </div>
                 <h1 class="">Invoice List</h1>
                 <label for="buttonSortByLabel" class="form-label">Sort by:</label>
                 <?php $statuses = ['all', 'draft', 'pending', 'paid']; // change from hardcoded? 
@@ -171,11 +215,9 @@ if ($_POST['pageOrigin'] == 'add' || $_POST['pageOrigin'] == 'update') {
             </div>
         </div>
     </div>
-
     <div class="container">
         <div class="row justify-content-md-center">
-
-            <div id="tableContainer" class="col col-10 table-responsive-xs">
+            <div id="tableContainer" class="col col-12 table-responsive-xs">
                 <table class="table table-hover font-monospace">
                     <thead>
                         <tr class="table-active">
@@ -195,6 +237,7 @@ if ($_POST['pageOrigin'] == 'add' || $_POST['pageOrigin'] == 'update') {
                                 <a>Client Email</a>
                             </th>
                             <th>Actions</th>
+                            <th>PDF</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -209,9 +252,14 @@ if ($_POST['pageOrigin'] == 'add' || $_POST['pageOrigin'] == 'update') {
                                 </td>
                                 <td>
                                     <form action="update.php" method="get" class="btn-group-sm">
-                                        <button name="invoiceToUpdate" class="btn btn-outline-secondary" value="<?php echo ucwords($entry['number']); ?>">Edit</button>
-                                        <button name="invoiceToDelete" class="btn btn-outline-danger" value="<?php echo ucwords($entry['number']); ?>">Delete</button>
-                                    </form> <!-- serialize() instead ? -->
+                                        <button id="updInvoice" name="invoiceToUpdate" class="btn btn-outline-secondary" value="<?php echo ucwords($entry['number']); ?>">Edit</button>
+                                        <button id="delInvoice" name="invoiceToDelete" class="btn btn-outline-danger" value="<?php echo ucwords($entry['number']); ?>">Delete</button>
+                                    </form>
+                                </td>
+                                <td>
+                                    <div class="btn-group-sm">
+                                        <button id="viewPdf" name="viewPdf" class="btn btn-outline-secondary" <?php echo (file_exists(__DIR__ . '/documents/' . $entry['number'] . '.pdf')) ? 'visible' : 'hidden'; ?>><a class="link-secondary" href="/documents/<?php echo ($entry['number']) ?>.pdf" target="_blank">View</a></button>
+                                    </div>
                                 </td>
                             <?php endforeach; ?>
                             </tr>
@@ -219,8 +267,8 @@ if ($_POST['pageOrigin'] == 'add' || $_POST['pageOrigin'] == 'update') {
 
                 </table>
             </div>
-            <div class="alert alert-success p-1 m-2 col-10">
-                <h6 class="text-center font-monospace">Invoice Manager - Part 4, made by Olivia ***REMOVED***</h6>
+            <div class="alert alert-success p-1 m-2 col-12">
+                <h6 class="text-center font-monospace">Invoice Manager - Part 5, made by Olivia ***REMOVED***</h6>
             </div>
         </div>
     </div>
@@ -228,6 +276,6 @@ if ($_POST['pageOrigin'] == 'add' || $_POST['pageOrigin'] == 'update') {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
         crossorigin="anonymous"></script>
+    <script src="js/toast.js"></script>
 </body>
-
 </html>

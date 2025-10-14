@@ -27,7 +27,6 @@ if (isset($_SESSION['retryInvoiceNumber'])) {
 
 <!DOCTYPE html>
 <html lang="en" data-bs-theme="dark"> <!-- fancy in dark mode -->
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -36,7 +35,6 @@ if (isset($_SESSION['retryInvoiceNumber'])) {
         integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
     <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
     <nav class="navbar navbar-expand-lg bg-body-tertiary">
         <div class="container-fluid">
@@ -57,14 +55,13 @@ if (isset($_SESSION['retryInvoiceNumber'])) {
             </div>
         </div>
     </nav>
-
     <div class="container">
         <div class="row justify-content-md-center font-monospace">
-            <div class="p-1 m-5 col-6">
+            <div class="p-1 m-5 col-8">
                 <h1>
                     Add Invoice:
                 </h1>
-                <form action="index.php" method="POST">
+                <form action="index.php" method="POST" enctype="multipart/form-data">
                     <div class="mb-3">
                         <label for="errors" class="form-label"><?= $_SESSION['errorString'] ?? '' ?></label>
                     </div>
@@ -100,17 +97,19 @@ if (isset($_SESSION['retryInvoiceNumber'])) {
                         <input type="text" class="form-control" name="email" value="<?= $currUpdateInvoiceEmail ?? '' ?>" required>
                         <input type="hidden" name="pageOrigin" value="add">
                     </div>
+                    <div class="mb-3">
+                        <label for="clientUploadTxt" class="form-label">Upload PDF (optional)</label>
+                        <input type="file" class="form-control" name="pdf" accept=".pdf">
+                    </div>
                     <button type="submit" class="btn btn-primary">Submit</button>
                 </form>
             </div>
         </div>
     </div>
-
-
     <div class="container">
         <div class="row justify-content-md-center">
-            <div class="alert alert-success p-1 m-2 col-10">
-                <h6 class="text-center font-monospace">Invoice Manager - Part 4, made by Olivia ***REMOVED***</h6>
+            <div class="alert alert-success p-1 m-2 col-12">
+                <h6 class="text-center font-monospace">Invoice Manager - Part 5, made by Olivia ***REMOVED***</h6>
             </div>
         </div>
     </div>
@@ -119,5 +118,4 @@ if (isset($_SESSION['retryInvoiceNumber'])) {
         integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
         crossorigin="anonymous"></script>
 </body>
-
 </html>
